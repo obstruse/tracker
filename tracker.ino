@@ -7,26 +7,12 @@ char fileName[] = __FILE__;
 //       compiler.cpp.extra_flags=-D__PATH__="{build.source.path}"
 char pathName[] = __PATH__;
 
-// pins 
-#define APDS9960_INT    16  // can I poll the interrupt pin? instead of generating an interrupt?   // gesture int  // not 16       // not 15
-#define SDA             2   // I2C          // not 16       // not 15
-#define LED_PIN         4  // DotStar      // pulls high?  // not 15  // not 7==TX  // not 1==TX
-#define CLOCK_PIN       5   // Dot Star     // pulls high?  // not 15 
-#define MISO            12  // SPI          // not moveable
-#define MOSI            13  // SPI          // not moveable
-#define SCK             14  // SPI          // not moveable
-#define SS              15  // chip select ADC  // should work on 15
-#define SCL             0   // I2C          // not 16       // not 15 (pullup)
-
-
-
-
 char temp[2000];
 boolean trackerRun = false;
-boolean constantAngular = false;
+boolean constantAngular = true;
 
-time_t frameTime = 1;
-time_t frameInc = 1;
+//time_t frameTime = 1;
+//time_t frameInc = 1;
 
 /********************************************************************************/
 
@@ -34,7 +20,7 @@ time_t frameInc = 1;
 
 const double pi = 3.14159265;
 
-float totalMinutes = 1;         // for timed frames
+//float totalMinutes = 1;         // for timed frames
 
 int totalFrames = 125;  
 int stepsPerFrame = 1;
@@ -42,12 +28,12 @@ int rotsPerFrame  = 1;
 
 float targetHeight = 10.0;
 const double targetOrigin = 24.0;
-double targetDistance;
 double targetBase;
 double targetAngle;
 
 int trackerMax = horizMaximum;
 int trackerMin = horizMinimum;
+bool trackerSpan = false;
 
 #include "wifi.h"
 #include "http.h"
@@ -134,7 +120,7 @@ void loop()
       delay(100);                           // 100ms pulse to trigger remote
       digitalWrite(2, LOW);
 
-      delay(4000);                          // allow CHDK a couple seconds to complete
+      delay(4000);                          // depends on how long CHDK takes. Might need to increase
 
       // setup next one
       // SOHCAHTOA
@@ -145,7 +131,6 @@ void loop()
 
         targetAngle = rotateMove * 2.0 * pi / rotateMaximum;
 
-        //targetBase  = sin(pi - pi/2.0 - targetAngle) * targetHeight / sin(targetAngle);
         targetBase = targetHeight / tan(targetAngle);
         horizMove = (targetOrigin - targetBase) * stepsInch + 0.5;
         
@@ -153,13 +138,7 @@ void loop()
         horizMove = horizStep + stepsPerFrame;
 
         targetBase = targetOrigin - (horizMove / stepsInch);
-        //targetDistance = sqrt((targetHeight * targetHeight) + (targetBase * targetBase) 
-        //                    - (2.0 * targetHeight * targetBase * cos(pi/2.0))
-        //                    );
-        //targetAngle = asin((sin(pi/2.0) * targetHeight)/targetDistance);
-        //if (targetBase < 0 ) {
-        //  targetAngle = pi - targetAngle;
-        //}
+
         targetAngle = atan2(targetHeight, targetBase);  
         rotateMove = rotateMaximum * targetAngle / 2.0 / pi + 0.5;        
       }

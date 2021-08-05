@@ -93,6 +93,10 @@ void handleRoot() {
   Angular: <input style='margin-right:15px' type='radio' name='constantAngular' value='on' %s>\
   Linear: <input                            type='radio' name='constantAngular' value='off' %s>\
 </td></tr>\
+<tr><td>Distance</td><td>\
+  Auto: <input style='margin-right:15px' type='radio' name='trackerSpan' value='auto' %s>\
+  Max:  <input                            type='radio' name='trackerSpan' value='max' %s>\
+</td></tr>\
 <tr><td>Position</td><td>\
   <button style='margin-right:35px'   type='submit' name='submit' value='left'>Begin</button>\
   <button                             type='submit' name='submit' value='mid'>Mid</button>\
@@ -104,7 +108,9 @@ void handleRoot() {
   String(targetHeight,3).c_str(),
   totalFrames,
   constantAngular ? "checked" : "",
-  constantAngular ? "":"checked"  
+  constantAngular ? "" : "checked",
+  trackerSpan ? "" : "checked" ,
+  trackerSpan ? "checked" : ""
   );
   server.sendContent ( temp );
 
@@ -182,14 +188,6 @@ void trackingMove(float horizArg) {    // horizArg is float inches
 
   targetBase = targetOrigin - horizArg;
 
-  //targetDistance = sqrt((targetHeight * targetHeight) + (targetBase * targetBase) 
-  //                    - (2 * targetHeight * targetBase * cos(pi/2.0))
-  //                    );
-  //targetAngle = asin((sin(pi/2.0) * targetHeight)/targetDistance);
-  //if (targetBase < 0 ) {
-  //  targetAngle = pi - targetAngle;
-  //}
-  
   targetAngle = atan2(targetHeight, targetBase);  
   rotateMove = rotateMaximum * targetAngle / 2.0 / pi;        
 }
@@ -215,8 +213,15 @@ void trackMove() {
 void autoMove() {
 
   targetHeight = server.arg("height").toFloat();
-  trackerMin = stepsInch * (targetOrigin - targetHeight);
-  trackerMax = stepsInch * (targetOrigin + targetHeight);
+  if ( server.arg("trackerSpan") == "max" ) {
+    trackerMin = horizMinimum;
+    trackerMax = horizMaximum;
+    trackerSpan = true;
+  } else {
+    trackerMin = stepsInch * (targetOrigin - targetHeight);
+    trackerMax = stepsInch * (targetOrigin + targetHeight);
+    trackerSpan = false;
+  }
   
   totalFrames = server.arg("frames").toInt();
   //totalMinutes = server.arg("tmins").toFloat();
@@ -224,9 +229,9 @@ void autoMove() {
   if ( server.arg("constantAngular") == "on" ) { constantAngular = true; } else { constantAngular = false; }
 
   String inSubmit = server.arg("submit"); 
-  if ( inSubmit == "left" )  {trackingMove(targetOrigin - targetHeight); }
+  if ( inSubmit == "left" )  {trackingMove(trackerMin / stepsInch); }
   if ( inSubmit == "mid" )   {trackingMove(targetOrigin); }
-  if ( inSubmit == "right" ) {trackingMove(targetOrigin + targetHeight); }
+  if ( inSubmit == "right" ) {trackingMove(trackerMax / stepsInch); }
   if ( inSubmit == "move" ) {
     trackerRun = true;
     horizMove = horizStep;
@@ -235,11 +240,7 @@ void autoMove() {
     // calculate either rotsPerFrame (constantAngular) or stepsPerFrame (constantLinear)
     if (constantAngular) {
       targetBase = targetOrigin - (trackerMin / stepsInch);
-      //targetDistance = sqrt((targetHeight * targetHeight) + (targetBase * targetBase) 
-      //                            - (2 * targetHeight * targetBase * cos(pi/2.0))
-      //                            );
-      //targetAngle = asin((sin(pi/2.0) * targetBase)/targetDistance) * 2;
-      targetAngle = atan2(targetHeight, targetBase) * 2.0;
+      targetAngle = atan2(targetBase, targetHeight) * 2.0;
       rotsPerFrame = rotateMaximum * targetAngle / 2.0 / pi / totalFrames;
     } else {
       stepsPerFrame = (trackerMax - trackerMin) / totalFrames;
@@ -292,7 +293,7 @@ void handleNotFound() {
 
 //--------------------------------------------
 void httpSetup() {
-/******************** HTTP ***********************/
+
   server.on ( "/", handleRoot );
   server.on ( "/setPosition", setPosition );
   server.on ( "/manualMove", manualMove );
@@ -301,6 +302,6 @@ void httpSetup() {
   server.on ( "/releaseStepper", releaseStepper );
   server.onNotFound ( handleNotFound );
   server.begin();
-/*************************************************/
+
 Serial.println("http started");
 }

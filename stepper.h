@@ -7,7 +7,7 @@ Adafruit_StepperMotor *stepper[2];
 const float stepsInch = 66.676;           // measured
 //float stepsInch = 132.38;
 
-const int horizMinimum = stepsInch * 4.0;
+const int horizMinimum = stepsInch * 6.0;
 const int horizMaximum = stepsInch * 44.0;
 
 //const int rotateMaximum = 200 * 27;         // 200 steps per revolution, 27:1 worm gear
